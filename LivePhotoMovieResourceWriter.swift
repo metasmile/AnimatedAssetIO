@@ -14,7 +14,8 @@ public class LivePhotoMovieResourceWriter: NSObject {
     private let kKeyStillImageTime = "com.apple.quicktime.still-image-time"
     private let kKeySpaceQuickTimeMetadata = "mdta"
     public var path : String
-    private let dummyTimeRange = CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(200, 3000))
+    static let writeQueue:dispatch_queue_t = dispatch_queue_create("com.stells.LivePhotoMovieResourceWriter.write", DISPATCH_QUEUE_SERIAL)
+    static let dummyTimeRange = CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(200, 3000))
 
     private lazy var asset : AVURLAsset = {
         let url = NSURL(fileURLWithPath: self.path)
@@ -95,10 +96,11 @@ public class LivePhotoMovieResourceWriter: NSObject {
 
             // write metadata track
             adapter.appendTimedMetadataGroup(AVTimedMetadataGroup(items: [metadataForStillImageTime()],
-                timeRange: dummyTimeRange))
+                timeRange: self.dynamicType.dummyTimeRange))
 
             // write video track
-            input.requestMediaDataWhenReadyOnQueue(dispatch_queue_create("assetAudioWriterQueue", nil)) {
+            let semaphore_write:dispatch_semaphore_t = dispatch_semaphore_create(0)
+            input.requestMediaDataWhenReadyOnQueue(self.dynamicType.writeQueue) {
                 while(input.readyForMoreMediaData) {
                     if reader.status == .Reading {
                         if let buffer = output.copyNextSampleBuffer() {
@@ -106,21 +108,25 @@ public class LivePhotoMovieResourceWriter: NSObject {
                                 print("cannot write: \(writer.error)")
                                 reader.cancelReading()
                             }
+                            dispatch_semaphore_signal(semaphore_write)
                         }
                     } else {
                         input.markAsFinished()
                         writer.finishWritingWithCompletionHandler() {
+                            dispatch_semaphore_signal(semaphore_write)
+
                             if let e = writer.error {
                                 print("cannot write: \(e)")
                             } else {
                                 print("finish writing.")
                             }
                         }
+
                     }
                 }
             }
             while writer.status == .Writing {
-                NSRunLoop.currentRunLoop().runUntilDate(NSDate(timeIntervalSinceNow: 0.5))
+                dispatch_semaphore_wait(semaphore_write, DISPATCH_TIME_FOREVER)
             }
             if let e = writer.error {
                 print("cannot write: \(e)")
