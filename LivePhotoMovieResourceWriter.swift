@@ -14,7 +14,9 @@ public class LivePhotoMovieResourceWriter: NSObject {
     private let kKeyStillImageTime = "com.apple.quicktime.still-image-time"
     private let kKeySpaceQuickTimeMetadata = "mdta"
     public var path : String
-    static let writeQueue:dispatch_queue_t = dispatch_queue_create("com.stells.LivePhotoMovieResourceWriter.write", DISPATCH_QUEUE_SERIAL)
+    public lazy var writeQueue:dispatch_queue_t = {
+        return dispatch_queue_create("com.stells.LivePhotoMovieResourceWriter.write", DISPATCH_QUEUE_SERIAL)
+    }()
     static let dummyTimeRange = CMTimeRangeMake(CMTimeMake(0, 1000), CMTimeMake(200, 3000))
 
     private lazy var asset : AVURLAsset = {
@@ -100,7 +102,7 @@ public class LivePhotoMovieResourceWriter: NSObject {
 
             // write video track
             let semaphore_write:dispatch_semaphore_t = dispatch_semaphore_create(0)
-            input.requestMediaDataWhenReadyOnQueue(self.dynamicType.writeQueue) {
+            input.requestMediaDataWhenReadyOnQueue(self.writeQueue) {
                 while(input.readyForMoreMediaData) {
                     if reader.status == .Reading {
                         if let buffer = output.copyNextSampleBuffer() {
