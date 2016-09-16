@@ -15,40 +15,63 @@ public class LivePhotoWriter {
 
     // MARK: Create PHLivePhoto
     public func createLivePhotoFromImages(paths: [String]
-            , indexOfTitle: UInt
-            , progress block: (progress:Double) -> Void
-            , fps: UInt
-            , created: (livePhoto:PHLivePhoto?) -> Void
+            , indexOfTitle: Int
+            , progress: ((przogress:Double) -> Void)?
+            , fps: Int32
+            , created: ((livePhoto:PHLivePhoto?) -> Void)?
     ) {
+        self.writeLivePhotoFromImages(paths, indexOfTitle: indexOfTitle, progress: progress, fps: fps) {
+            success, imageURL, pairedVideoURL, _ in
 
+            if success{
+                self.createLivePhoto(imageURL!, withPairedVideo: pairedVideoURL!, completion: created)
+            }else{
+                created?(livePhoto:nil)
+            }
+        }
     }
 
     public func createLivePhotoFromVideo(videoPath: String
-            , timeLocationOfTitle index: Double
-            , created: (livePhoto:PHLivePhoto?) -> Void
+            , timeLocationOfTitle: Double
+            , created: ((livePhoto:PHLivePhoto?) -> Void)?
     ) {
+        self.writeLivePhotoFromVideo(videoPath, timeLocationOfTitle: timeLocationOfTitle, completion:{
+            success, imageURL, pairedVideoURL, error in
 
-
+            if success{
+                self.createLivePhoto(imageURL!, withPairedVideo: pairedVideoURL!, completion: created)
+            }else{
+                created?(livePhoto:nil)
+            }
+        })
     }
 
     // MARK: Save LivePhoto to Library
     public func saveLivePhotoFromImages(paths: [String]
-            , indexOfTitle: UInt
-            , progress block: (progress:Double) -> Void
-            , fps: UInt
+            , indexOfTitle: Int
+            , progress: ((progress:Double) -> Void)?
+            , fps: Int32
             , saved: LivePhotoWriterAssetSavedHandler
             , andFetched: LivePhotoWriterAssetSavedAndFetchedHandler
     ) {
+        self.writeLivePhotoFromImages(paths, indexOfTitle: indexOfTitle, progress: progress, fps: fps) {
+            success, imageURL, pairedVideoURL, _ in
+
+            self.saveLivePhoto(imageURL!, withPairedVideo: pairedVideoURL!, completion: saved, fetchCompletion:andFetched)
+        }
 
     }
 
     public func saveLivePhotoFromVideo(videoPath: String
-            , timeLocationOfTitle index: Double
+            , timeLocationOfTitle : Double
             , saved: LivePhotoWriterAssetSavedHandler
             , andFetched: LivePhotoWriterAssetSavedAndFetchedHandler
     ) {
+        self.writeLivePhotoFromVideo(videoPath, timeLocationOfTitle: timeLocationOfTitle, completion:{
+            success, imageURL, pairedVideoURL, error in
 
-
+            self.saveLivePhoto(imageURL!, withPairedVideo: pairedVideoURL!, completion: saved, fetchCompletion:andFetched)
+        })
     }
 
     // MARK: PhotoKit Procedures
