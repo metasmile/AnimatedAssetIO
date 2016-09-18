@@ -117,7 +117,7 @@ public class TimeLapseMovieWriter: NSObject {
                             break
                         }
 
-                        frameCount++
+                        frameCount += 1
 
                         currentProgress.completedUnitCount = frameCount
                         progress(currentProgress)
@@ -186,7 +186,7 @@ public class TimeLapseMovieWriter: NSObject {
     }
 
     func fillPixelBufferFromImage(image: UIImage, pixelBuffer: CVPixelBufferRef) {
-        CVPixelBufferLockBaseAddress(pixelBuffer, 0)
+        CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: CVOptionFlags(0)))
 
         let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
         let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
@@ -201,8 +201,8 @@ public class TimeLapseMovieWriter: NSObject {
                 CGImageAlphaInfo.PremultipliedFirst.rawValue
                 )
 
-        CGContextDrawImage(context, CGRectMake(0, 0, image.size.width, image.size.height), image.CGImage)
+        CGContextDrawImage(context!, CGRectMake(0, 0, image.size.width, image.size.height), image.CGImage!)
 
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, 0)
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: CVOptionFlags(0)))
     }
 }
