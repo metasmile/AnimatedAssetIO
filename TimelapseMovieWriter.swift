@@ -35,7 +35,8 @@ public class TimeLapseMovieWriter: NSObject {
         }
     }
 
-    public func write(progress: (NSProgress -> Void), success: (NSURL -> Void), failure: (NSError -> Void)) {
+    public func write(progress: ((progress: NSProgress, error: NSError?) -> Void)?, success: (NSURL -> Void), failure: (NSError -> Void)) {
+        
         self.initProperties()
 
         let inputSize = self.inputSize
@@ -98,29 +99,31 @@ public class TimeLapseMovieWriter: NSObject {
                     var frameCount: Int64 = 0
                     var remainingPhotoURLs = [String](self.photoPaths)
 
-                    while (videoWriterInput.readyForMoreMediaData && !remainingPhotoURLs.isEmpty) {
-                        let nextPhotoURL = remainingPhotoURLs.removeAtIndex(0)
-                        let lastFrameTime = CMTimeMake(frameCount, fps)
-                        let presentationTime = frameCount == 0 ? lastFrameTime : CMTimeAdd(lastFrameTime, frameDuration)
+                    while !remainingPhotoURLs.isEmpty {
+                        if videoWriterInput.readyForMoreMediaData{
+                            let nextPhotoURL = remainingPhotoURLs.removeAtIndex(0)
+                            let lastFrameTime = CMTimeMake(frameCount, fps)
+                            let presentationTime = frameCount == 0 ? lastFrameTime : CMTimeAdd(lastFrameTime, frameDuration)
 
 
-                        if !self.appendPixelBufferForImageAtURL(nextPhotoURL, pixelBufferAdaptor: pixelBufferAdaptor, presentationTime: presentationTime) {
-                            error = NSError(
-                                    domain: kErrorDomain,
-                                    code: kFailedToAppendPixelBufferError,
-                                    userInfo: [
-                                            "description": "AVAssetWriterInputPixelBufferAdapter failed to append pixel buffer",
-                                            "rawError": videoWriter.error ?? "(none)"
-                                    ]
-                                    )
+                            if !self.appendPixelBufferForImageAtURL(nextPhotoURL, pixelBufferAdaptor: pixelBufferAdaptor, presentationTime: presentationTime) {
+                                error = NSError(
+                                        domain: kErrorDomain,
+                                        code: kFailedToAppendPixelBufferError,
+                                        userInfo: [
+                                                "description": "AVAssetWriterInputPixelBufferAdapter failed to append pixel buffer",
+                                                "rawError": videoWriter.error ?? "(none)"
+                                        ]
+                                )
 
-                            break
+                                break
+                            }
+
+                            frameCount += 1
+
+                            currentProgress.completedUnitCount = frameCount
+                            progress?(progress:currentProgress, error:error)
                         }
-
-                        frameCount += 1
-
-                        currentProgress.completedUnitCount = frameCount
-                        progress(currentProgress)
                     }
 
                     videoWriterInput.markAsFinished()
