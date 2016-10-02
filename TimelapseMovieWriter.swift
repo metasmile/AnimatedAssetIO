@@ -102,6 +102,7 @@ public class TimeLapseMovieWriter: NSObject {
                     while !remainingPhotoURLs.isEmpty {
                         if videoWriterInput.readyForMoreMediaData{
                             let nextPhotoURL = remainingPhotoURLs.removeAtIndex(0)
+                            print(remainingPhotoURLs.count)
                             let lastFrameTime = CMTimeMake(frameCount, fps)
                             let presentationTime = frameCount == 0 ? lastFrameTime : CMTimeAdd(lastFrameTime, frameDuration)
 
